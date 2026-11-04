@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: EduMentor Hub API
+  description: API REST de la plataforma de tutorías entre pares del Equipo 05.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Desarrollo local
+tags:
+  - name: Evaluaciones
+  - name: Recursos
+security:
+  - bearerAuth: []
+
+paths:
+  /api/sesiones/{sesionId}/evaluacion:
+    post:
+      tags: [Evaluaciones]
+      summary: Evaluar una sesión
+      description: >
+        Solo el estudiante de la sesión puede evaluarla, y solo cuando está en estado COMPLETED.
+        Al guardar, la sesión pasa a REVIEWED y se recalcula el promedio del tutor.
+      operationId: crearEvaluacion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluacionRequest'
+      responses:
+        '201':
+          description: Evaluación creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluacionResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+    get:
+      tags: [Evaluaciones]
+      summary: Consultar la evaluación de una sesión
+      operationId: obtenerEvaluacionPorSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Evaluación de la sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluacionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /api/tutores/{tutorId}/evaluaciones:
+    get:
+      tags: [Evaluaciones]
+      summary: Listar las evaluaciones de un tutor
+      description: Alimenta el perfil del tutor. El promedio y el total se leen del usuario.
+      operationId: listarEvaluacionesDeTutor
+      parameters:
+        - name: tutorId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Evaluaciones recibidas por el tutor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EvaluacionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /api/sesiones/{sesionId}/recursos:
+    get:
+      tags: [Recursos]
+      summary: Listar los recursos de una sesión
+      operationId: listarRecursosDeSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Recursos de la sesión
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RecursoResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    post:
+      tags: [Recursos]
+      summary: Agregar un enlace a una sesión
+      description: Solo el tutor de la sesión puede agregar recursos. Los recursos son enlaces, no archivos.
+      operationId: crearRecurso
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecursoRequest'
+      responses:
+        '201':
+          description: Recurso creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecursoResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+  /api/recursos/{recursoId}:
+    delete:
+      tags: [Recursos]
+      summary: Eliminar un recurso
+      operationId: eliminarRecurso
+      parameters:
+        - name: recursoId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Recurso eliminado
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    SesionId:
+      name: sesionId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  schemas:
+    ProblemDetails:
+      type: object
+      description: Error según RFC 7807.
+      required: [title, status]
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          example: about:blank
+        title:
+          type: string
+          example: Solicitud inválida
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: La calificación debe estar entre 1 y 5.
+        instance:
+          type: string
+          example: /api/sesiones/12/evaluacion
+        errores:
+          type: array
+          description: Errores por campo, solo en validaciones.
+          items:
+            type: object
+            required: [campo, mensaje]
+            properties:
+              campo:
+                type: string
+                example: calificacionEstrellas
+              mensaje:
+                type: string
+                example: debe ser mayor o igual a 1
+
+    EvaluacionRequest:
+      type: object
+      required: [calificacionEstrellas]
+      properties:
+        calificacionEstrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comentario:
+          type: string
+          maxLength: 500
+
+    EvaluacionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sesionId:
+          type: integer
+          format: int64
+        calificacionEstrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comentario:
+          type: string
+        fechaEvaluacion:
+          type: string
+          format: date-time
+
+    RecursoRequest:
+      type: object
+      required: [titulo, urlRecurso]
+      properties:
+        titulo:
+          type: string
+          maxLength: 150
+        urlRecurso:
+          type: string
+          format: uri
+          maxLength: 500
+
+    RecursoResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sesionId:
+          type: integer
+          format: int64
+        titulo:
+          type: string
+        urlRecurso:
+          type: string
+          format: uri
+
+  responses:
+    SolicitudInvalida:
+      description: Datos inválidos
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NoAutenticado:
+      description: Falta el token o no es válido
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    SinPermiso:
+      description: El rol o el usuario no tiene permiso
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    NoEncontrado:
+      description: El recurso no existe
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflicto:
+      description: La operación no es válida en el estado actual
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
