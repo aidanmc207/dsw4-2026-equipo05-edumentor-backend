@@ -7,6 +7,7 @@ servers:
   - url: http://localhost:8080
     description: Desarrollo local
 tags:
+  - name: Autenticación
   - name: Materias
   - name: Evaluaciones
   - name: Recursos
@@ -14,6 +15,64 @@ security:
   - bearerAuth: []
 
 paths:
+  /api/auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión
+      description: Devuelve el token JWT que se manda en el encabezado Authorization.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Credenciales correctas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          description: Correo o contraseña incorrectos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /api/auth/registro:
+    post:
+      tags: [Autenticación]
+      summary: Crear una cuenta
+      description: Solo permite los roles ESTUDIANTE y TUTOR. Al registrarse ya devuelve el token.
+      operationId: registrar
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroRequest'
+      responses:
+        '201':
+          description: Cuenta creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '409':
+          description: El correo o el carné ya están registrados
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /api/sesiones/{sesionId}/evaluacion:
     post:
       tags: [Evaluaciones]
@@ -408,6 +467,54 @@ components:
           minimum: 1
           maximum: 12
           example: 4
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: estudiante@ucr.ac.cr
+        password:
+          type: string
+          example: Edumentor2026
+
+    RegistroRequest:
+      type: object
+      required: [carne, email, password, nombre, apellido, rol]
+      properties:
+        carne:
+          type: string
+          maxLength: 20
+          example: C21111
+        email:
+          type: string
+          format: email
+          maxLength: 120
+        password:
+          type: string
+          minLength: 8
+        nombre:
+          type: string
+          maxLength: 60
+        apellido:
+          type: string
+          maxLength: 60
+        rol:
+          type: string
+          enum: [ESTUDIANTE, TUTOR]
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        rol:
+          type: string
+          enum: [ESTUDIANTE, TUTOR, COORDINADOR]
+        nombre:
+          type: string
 
     MateriaResponse:
       type: object
