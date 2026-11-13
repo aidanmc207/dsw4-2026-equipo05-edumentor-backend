@@ -8,6 +8,7 @@ servers:
     description: Desarrollo local
 tags:
   - name: Autenticación
+  - name: Usuarios
   - name: Materias
   - name: Evaluaciones
   - name: Recursos
@@ -72,6 +73,136 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+
+  /api/usuarios:
+    get:
+      tags: [Usuarios]
+      summary: Listar usuarios
+      description: Solo el coordinador. Se puede filtrar por rol.
+      operationId: listarUsuarios
+      parameters:
+        - name: rol
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ESTUDIANTE, TUTOR, COORDINADOR]
+      responses:
+        '200':
+          description: Usuarios ordenados por apellido
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+
+  /api/usuarios/tutores:
+    get:
+      tags: [Usuarios]
+      summary: Listar tutores
+      description: Para cualquier usuario autenticado. Se usa al reservar una sesión.
+      operationId: listarTutores
+      responses:
+        '200':
+          description: Tutores con su promedio
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /api/usuarios/yo:
+    get:
+      tags: [Usuarios]
+      summary: Ver el perfil propio
+      description: Devuelve el usuario dueño del token.
+      operationId: miPerfil
+      responses:
+        '200':
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /api/usuarios/{usuarioId}:
+    parameters:
+      - name: usuarioId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      tags: [Usuarios]
+      summary: Consultar un usuario
+      description: Solo el coordinador.
+      operationId: obtenerUsuario
+      responses:
+        '200':
+          description: Usuario encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    put:
+      tags: [Usuarios]
+      summary: Editar nombre, apellido y rol
+      description: Solo el coordinador. El correo y el carné no se cambian.
+      operationId: actualizarUsuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioUpdate'
+      responses:
+        '200':
+          description: Usuario actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    delete:
+      tags: [Usuarios]
+      summary: Eliminar un usuario
+      description: Solo el coordinador. No puede eliminar su propia cuenta.
+      operationId: eliminarUsuario
+      responses:
+        '204':
+          description: Usuario eliminado
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
 
   /api/sesiones/{sesionId}/evaluacion:
     post:
@@ -515,6 +646,46 @@ components:
           enum: [ESTUDIANTE, TUTOR, COORDINADOR]
         nombre:
           type: string
+
+    UsuarioResponse:
+      type: object
+      description: Nunca incluye la contraseña.
+      properties:
+        id:
+          type: integer
+          format: int64
+        carne:
+          type: string
+        email:
+          type: string
+        nombre:
+          type: string
+        apellido:
+          type: string
+        rol:
+          type: string
+          enum: [ESTUDIANTE, TUTOR, COORDINADOR]
+        promedioCalificacion:
+          type: number
+          format: double
+          example: 4.5
+        totalEvaluaciones:
+          type: integer
+          example: 6
+
+    UsuarioUpdate:
+      type: object
+      required: [nombre, apellido, rol]
+      properties:
+        nombre:
+          type: string
+          maxLength: 60
+        apellido:
+          type: string
+          maxLength: 60
+        rol:
+          type: string
+          enum: [ESTUDIANTE, TUTOR, COORDINADOR]
 
     MateriaResponse:
       type: object
