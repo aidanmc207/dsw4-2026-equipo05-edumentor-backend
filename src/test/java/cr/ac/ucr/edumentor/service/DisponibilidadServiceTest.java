@@ -36,6 +36,7 @@ import static org.mockito.Mockito.when;
 class DisponibilidadServiceTest {
 
     private static final Long TUTOR_ID = 5L;
+    private static final String EMAIL_TUTOR = "tutor@ucr.ac.cr";
 
     @Mock
     private DisponibilidadRepository disponibilidadRepository;
@@ -50,7 +51,7 @@ class DisponibilidadServiceTest {
 
     @BeforeEach
     void prepararTutor() {
-        tutor = new Usuario("B12345", "tutor@ucr.ac.cr", "hash", "Laura", "Mora", Rol.TUTOR);
+        tutor = new Usuario("B12345", EMAIL_TUTOR, "hash", "Laura", "Mora", Rol.TUTOR);
         ReflectionTestUtils.setField(tutor, "id", TUTOR_ID);
     }
 
@@ -68,7 +69,7 @@ class DisponibilidadServiceTest {
         when(disponibilidadRepository.save(any(DisponibilidadTutor.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         DisponibilidadRequestDTO dto = new DisponibilidadRequestDTO(DayOfWeek.MONDAY, LocalTime.of(10, 0), LocalTime.of(12, 0), null);
-        DisponibilidadResponseDTO creado = disponibilidadService.crear(TUTOR_ID, dto);
+        DisponibilidadResponseDTO creado = disponibilidadService.crear(TUTOR_ID, dto, EMAIL_TUTOR);
 
         assertEquals(LocalTime.of(10, 0), creado.horaInicio());
         assertTrue(creado.estaActivo());
@@ -82,7 +83,7 @@ class DisponibilidadServiceTest {
 
         DisponibilidadRequestDTO dto = new DisponibilidadRequestDTO(DayOfWeek.MONDAY, LocalTime.of(9, 0), LocalTime.of(11, 0), true);
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> disponibilidadService.crear(TUTOR_ID, dto));
+                () -> disponibilidadService.crear(TUTOR_ID, dto, EMAIL_TUTOR));
 
         assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
         verify(disponibilidadRepository, never()).save(any());
@@ -94,7 +95,7 @@ class DisponibilidadServiceTest {
 
         DisponibilidadRequestDTO dto = new DisponibilidadRequestDTO(DayOfWeek.TUESDAY, LocalTime.of(14, 0), LocalTime.of(13, 0), true);
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> disponibilidadService.crear(TUTOR_ID, dto));
+                () -> disponibilidadService.crear(TUTOR_ID, dto, EMAIL_TUTOR));
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
     }
@@ -106,7 +107,7 @@ class DisponibilidadServiceTest {
 
         DisponibilidadRequestDTO dto = new DisponibilidadRequestDTO(DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(10, 0), true);
         ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> disponibilidadService.crear(7L, dto));
+                () -> disponibilidadService.crear(7L, dto, EMAIL_TUTOR));
 
         assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
     }
@@ -118,9 +119,20 @@ class DisponibilidadServiceTest {
         when(disponibilidadRepository.findByTutorIdAndDiaSemana(TUTOR_ID, DayOfWeek.MONDAY)).thenReturn(List.of(existente));
 
         DisponibilidadRequestDTO dto = new DisponibilidadRequestDTO(DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(11, 0), null);
-        DisponibilidadResponseDTO actualizado = disponibilidadService.actualizar(1L, dto);
+        DisponibilidadResponseDTO actualizado = disponibilidadService.actualizar(1L, dto, EMAIL_TUTOR);
 
         assertEquals(LocalTime.of(11, 0), actualizado.horaFin());
+    }
+
+    @Test
+    void eliminarRechazaBloqueDeOtroTutor() {
+        when(disponibilidadRepository.findById(1L)).thenReturn(Optional.of(bloque(1L, DayOfWeek.MONDAY, 8, 10)));
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class,
+                () -> disponibilidadService.eliminar(1L, "otro.tutor@ucr.ac.cr"));
+
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
+        verify(disponibilidadRepository, never()).delete(any());
     }
 
     @Test
