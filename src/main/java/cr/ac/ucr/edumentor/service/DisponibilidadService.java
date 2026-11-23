@@ -40,8 +40,9 @@ public class DisponibilidadService {
     }
 
     @Transactional
-    public DisponibilidadResponseDTO crear(Long tutorId, DisponibilidadRequestDTO dto) {
+    public DisponibilidadResponseDTO crear(Long tutorId, DisponibilidadRequestDTO dto, String emailUsuario) {
         Usuario tutor = buscarTutor(tutorId);
+        validarDueno(tutor, emailUsuario);
         DisponibilidadTutor bloque = new DisponibilidadTutor(tutor, dto.diaSemana(), dto.horaInicio(), dto.horaFin());
         bloque.setEstaActivo(dto.estaActivo() == null || dto.estaActivo());
         validarBloque(tutorId, bloque, null);
@@ -49,8 +50,9 @@ public class DisponibilidadService {
     }
 
     @Transactional
-    public DisponibilidadResponseDTO actualizar(Long id, DisponibilidadRequestDTO dto) {
+    public DisponibilidadResponseDTO actualizar(Long id, DisponibilidadRequestDTO dto, String emailUsuario) {
         DisponibilidadTutor bloque = buscarBloque(id);
+        validarDueno(bloque.getTutor(), emailUsuario);
         bloque.setDiaSemana(dto.diaSemana());
         bloque.setHoraInicio(dto.horaInicio());
         bloque.setHoraFin(dto.horaFin());
@@ -62,8 +64,10 @@ public class DisponibilidadService {
     }
 
     @Transactional
-    public void eliminar(Long id) {
-        disponibilidadRepository.delete(buscarBloque(id));
+    public void eliminar(Long id, String emailUsuario) {
+        DisponibilidadTutor bloque = buscarBloque(id);
+        validarDueno(bloque.getTutor(), emailUsuario);
+        disponibilidadRepository.delete(bloque);
     }
 
     // Lo usa la reserva de sesiones: la sesión tiene que caber completa dentro de un bloque activo del tutor
@@ -95,6 +99,12 @@ public class DisponibilidadService {
                 .anyMatch(otro -> inicio.isBefore(otro.getHoraFin()) && fin.isAfter(otro.getHoraInicio()));
         if (choca) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El bloque choca con otro horario del tutor ese mismo día");
+        }
+    }
+
+    private void validarDueno(Usuario tutor, String emailUsuario) {
+        if (!tutor.getEmail().equals(emailUsuario)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo puede modificar su propia disponibilidad");
         }
     }
 

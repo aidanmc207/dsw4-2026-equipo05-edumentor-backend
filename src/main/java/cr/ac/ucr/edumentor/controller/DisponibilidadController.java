@@ -6,6 +6,7 @@ import cr.ac.ucr.edumentor.service.DisponibilidadService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,18 +35,21 @@ public class DisponibilidadController {
 
     @PostMapping("/tutores/{tutorId}/disponibilidad")
     public ResponseEntity<DisponibilidadResponseDTO> crear(@PathVariable Long tutorId,
-                                                           @Valid @RequestBody DisponibilidadRequestDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(disponibilidadService.crear(tutorId, dto));
+                                                           @Valid @RequestBody DisponibilidadRequestDTO dto,
+                                                           Authentication autenticacion) {
+        DisponibilidadResponseDTO creado = disponibilidadService.crear(tutorId, dto, autenticacion.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(creado);
     }
 
     @PutMapping("/disponibilidad/{id}")
-    public DisponibilidadResponseDTO actualizar(@PathVariable Long id, @Valid @RequestBody DisponibilidadRequestDTO dto) {
-        return disponibilidadService.actualizar(id, dto);
+    public DisponibilidadResponseDTO actualizar(@PathVariable Long id, @Valid @RequestBody DisponibilidadRequestDTO dto,
+                                                Authentication autenticacion) {
+        return disponibilidadService.actualizar(id, dto, autenticacion.getName());
     }
 
     @DeleteMapping("/disponibilidad/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        disponibilidadService.eliminar(id);
+    public ResponseEntity<Void> eliminar(@PathVariable Long id, Authentication autenticacion) {
+        disponibilidadService.eliminar(id, autenticacion.getName());
         return ResponseEntity.noContent().build();
     }
 }
