@@ -455,7 +455,7 @@ paths:
     delete:
       tags: [Materias]
       summary: Eliminar una materia
-      description: Solo el coordinador.
+      description: Solo el coordinador. No se puede eliminar si la materia ya tiene sesiones registradas.
       operationId: eliminarMateria
       responses:
         '204':
@@ -466,6 +466,8 @@ paths:
           $ref: '#/components/responses/SinPermiso'
         '404':
           $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
 
 components:
   securitySchemes:
