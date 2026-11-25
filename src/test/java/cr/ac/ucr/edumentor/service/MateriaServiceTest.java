@@ -4,6 +4,7 @@ import cr.ac.ucr.edumentor.dto.MateriaRequestDTO;
 import cr.ac.ucr.edumentor.dto.MateriaResponseDTO;
 import cr.ac.ucr.edumentor.entity.Materia;
 import cr.ac.ucr.edumentor.repository.MateriaRepository;
+import cr.ac.ucr.edumentor.repository.SesionRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,8 +28,23 @@ class MateriaServiceTest {
     @Mock
     private MateriaRepository materiaRepository;
 
+    @Mock
+    private SesionRepository sesionRepository;
+
     @InjectMocks
     private MateriaService materiaService;
+
+    @Test
+    void eliminarRechazaMateriaConSesiones() {
+        Materia materia = new Materia("IF2000", "Programación I", "Informática Empresarial", 4);
+        when(materiaRepository.findById(1L)).thenReturn(Optional.of(materia));
+        when(sesionRepository.existsByMateriaId(1L)).thenReturn(true);
+
+        ResponseStatusException error = assertThrows(ResponseStatusException.class, () -> materiaService.eliminar(1L));
+
+        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+        verify(materiaRepository, never()).delete(any());
+    }
 
     @Test
     void crearGuardaMateriaConCodigoEnMayuscula() {

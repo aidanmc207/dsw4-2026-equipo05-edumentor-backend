@@ -4,6 +4,7 @@ import cr.ac.ucr.edumentor.dto.MateriaRequestDTO;
 import cr.ac.ucr.edumentor.dto.MateriaResponseDTO;
 import cr.ac.ucr.edumentor.entity.Materia;
 import cr.ac.ucr.edumentor.repository.MateriaRepository;
+import cr.ac.ucr.edumentor.repository.SesionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +16,11 @@ import java.util.List;
 public class MateriaService {
 
     private final MateriaRepository materiaRepository;
+    private final SesionRepository sesionRepository;
 
-    public MateriaService(MateriaRepository materiaRepository) {
+    public MateriaService(MateriaRepository materiaRepository, SesionRepository sesionRepository) {
         this.materiaRepository = materiaRepository;
+        this.sesionRepository = sesionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -58,7 +61,12 @@ public class MateriaService {
 
     @Transactional
     public void eliminar(Long id) {
-        materiaRepository.delete(buscarMateria(id));
+        Materia materia = buscarMateria(id);
+        if (sesionRepository.existsByMateriaId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede eliminar " + materia.getCodigoMateria() + " porque tiene sesiones registradas");
+        }
+        materiaRepository.delete(materia);
     }
 
     private Materia buscarMateria(Long id) {

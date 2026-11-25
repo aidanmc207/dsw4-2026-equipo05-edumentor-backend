@@ -10,6 +10,8 @@ tags:
   - name: Autenticación
   - name: Usuarios
   - name: Materias
+  - name: Disponibilidad
+  - name: Sesiones
   - name: Evaluaciones
   - name: Recursos
 security:
@@ -203,6 +205,182 @@ paths:
           $ref: '#/components/responses/SinPermiso'
         '404':
           $ref: '#/components/responses/NoEncontrado'
+
+  /api/sesiones:
+    post:
+      tags: [Sesiones]
+      summary: Reservar una sesión
+      description: >
+        Solo un estudiante. La fecha tiene que ser futura, la sesión debe caber completa dentro de un
+        bloque activo del tutor y no puede traslaparse con una sesión confirmada del tutor ni del
+        estudiante. La sesión se crea en estado REQUESTED.
+      operationId: reservarSesion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SesionRequest'
+      responses:
+        '201':
+          description: Sesión creada en estado REQUESTED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/sesiones/mias:
+    get:
+      tags: [Sesiones]
+      summary: Listar mis sesiones
+      description: Sesiones donde el usuario del token es el estudiante o el tutor, de la más reciente a la más antigua.
+      operationId: listarMisSesiones
+      responses:
+        '200':
+          description: Sesiones del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+
+  /api/sesiones/{sesionId}/confirmar:
+    put:
+      tags: [Sesiones]
+      summary: Confirmar una solicitud
+      description: >
+        Solo el tutor de la sesión. Pasa de REQUESTED a CONFIRMED. Si mientras tanto el tutor o el
+        estudiante ya tienen otra sesión confirmada que se traslapa, responde 409.
+      operationId: confirmarSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Sesión confirmada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/sesiones/{sesionId}/rechazar:
+    put:
+      tags: [Sesiones]
+      summary: Rechazar una solicitud
+      description: Solo el tutor de la sesión. Pasa de REQUESTED a REJECTED, que es un estado final.
+      operationId: rechazarSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Sesión rechazada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/sesiones/{sesionId}/cancelar:
+    put:
+      tags: [Sesiones]
+      summary: Cancelar una sesión
+      description: >
+        Si la sesión está en REQUESTED, solo el estudiante puede retirarla. Si está en CONFIRMED, la
+        puede cancelar el estudiante o el tutor, pero con al menos 2 horas de anticipación a la hora
+        pactada. Pasa a CANCELLED, que es un estado final.
+      operationId: cancelarSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Sesión cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/sesiones/{sesionId}/iniciar:
+    put:
+      tags: [Sesiones]
+      summary: Iniciar una sesión
+      description: Solo el tutor de la sesión y solo desde la hora pactada. Pasa de CONFIRMED a IN_SESSION.
+      operationId: iniciarSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Sesión en curso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/sesiones/{sesionId}/completar:
+    put:
+      tags: [Sesiones]
+      summary: Completar una sesión
+      description: Solo el tutor de la sesión. Pasa de IN_SESSION a COMPLETED, y desde ahí el estudiante puede evaluarla.
+      operationId: completarSesion
+      parameters:
+        - $ref: '#/components/parameters/SesionId'
+      responses:
+        '200':
+          description: Sesión completada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SesionResponse'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
 
   /api/sesiones/{sesionId}/evaluacion:
     post:
@@ -455,11 +633,123 @@ paths:
     delete:
       tags: [Materias]
       summary: Eliminar una materia
-      description: Solo el coordinador.
+      description: Solo el coordinador. No se puede eliminar si la materia ya tiene sesiones registradas.
       operationId: eliminarMateria
       responses:
         '204':
           description: Materia eliminada
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/tutores/{tutorId}/disponibilidad:
+    parameters:
+      - name: tutorId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      tags: [Disponibilidad]
+      summary: Listar los bloques de horario de un tutor
+      description: Ordenados por día de la semana y hora de inicio. Incluye bloques inactivos.
+      operationId: listarDisponibilidadDeTutor
+      responses:
+        '200':
+          description: Bloques del tutor
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DisponibilidadResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+    post:
+      tags: [Disponibilidad]
+      summary: Agregar un bloque de horario
+      description: >
+        Solo el propio tutor. La hora de fin debe ser posterior a la de inicio y un bloque activo
+        no puede traslaparse con otro bloque activo del mismo tutor en el mismo día.
+      operationId: crearDisponibilidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisponibilidadRequest'
+      responses:
+        '201':
+          description: Bloque creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisponibilidadResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+
+  /api/disponibilidad/{disponibilidadId}:
+    parameters:
+      - name: disponibilidadId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    put:
+      tags: [Disponibilidad]
+      summary: Editar un bloque de horario
+      description: Solo el tutor dueño del bloque. Si no se envía estaActivo se conserva el valor actual.
+      operationId: actualizarDisponibilidad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisponibilidadRequest'
+      responses:
+        '200':
+          description: Bloque actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisponibilidadResponse'
+        '400':
+          $ref: '#/components/responses/SolicitudInvalida'
+        '401':
+          $ref: '#/components/responses/NoAutenticado'
+        '403':
+          $ref: '#/components/responses/SinPermiso'
+        '404':
+          $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
+    delete:
+      tags: [Disponibilidad]
+      summary: Eliminar un bloque de horario
+      description: Solo el tutor dueño del bloque.
+      operationId: eliminarDisponibilidad
+      responses:
+        '204':
+          description: Bloque eliminado
         '401':
           $ref: '#/components/responses/NoAutenticado'
         '403':
@@ -701,6 +991,105 @@ components:
           type: string
         creditos:
           type: integer
+
+    DisponibilidadRequest:
+      type: object
+      required: [diaSemana, horaInicio, horaFin]
+      properties:
+        diaSemana:
+          $ref: '#/components/schemas/DiaSemana'
+        horaInicio:
+          type: string
+          pattern: '^\d{2}:\d{2}(:\d{2})?$'
+          example: '08:00'
+        horaFin:
+          type: string
+          pattern: '^\d{2}:\d{2}(:\d{2})?$'
+          example: '10:00'
+        estaActivo:
+          type: boolean
+          description: Si no se envía al crear, el bloque queda activo.
+
+    DisponibilidadResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        tutorId:
+          type: integer
+          format: int64
+        diaSemana:
+          $ref: '#/components/schemas/DiaSemana'
+        horaInicio:
+          type: string
+          example: '08:00:00'
+        horaFin:
+          type: string
+          example: '10:00:00'
+        estaActivo:
+          type: boolean
+
+    SesionRequest:
+      type: object
+      required: [tutorId, materiaId, fechaHora, duracionMinutos, modalidad]
+      properties:
+        tutorId:
+          type: integer
+          format: int64
+        materiaId:
+          type: integer
+          format: int64
+        fechaHora:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$'
+          description: Fecha y hora de inicio, sin zona horaria.
+          example: '2026-11-24T09:00:00'
+        duracionMinutos:
+          type: integer
+          minimum: 30
+          maximum: 240
+          example: 60
+        modalidad:
+          $ref: '#/components/schemas/Modalidad'
+
+    SesionResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        nombreEstudiante:
+          type: string
+          example: Sofía Araya
+        nombreTutor:
+          type: string
+          example: Mario Solano
+        nombreMateria:
+          type: string
+          example: Introducción a la Computación
+        fechaHora:
+          type: string
+          pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$'
+          example: '2026-11-24T09:00:00'
+        duracionMinutos:
+          type: integer
+        estado:
+          $ref: '#/components/schemas/EstadoSesion'
+        modalidad:
+          $ref: '#/components/schemas/Modalidad'
+
+    EstadoSesion:
+      type: string
+      enum: [REQUESTED, CONFIRMED, REJECTED, CANCELLED, IN_SESSION, COMPLETED, REVIEWED]
+
+    Modalidad:
+      type: string
+      enum: [VIRTUAL, PRESENCIAL]
+
+    DiaSemana:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
 
   responses:
     SolicitudInvalida:
