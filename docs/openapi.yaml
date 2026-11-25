@@ -192,7 +192,9 @@ paths:
     delete:
       tags: [Usuarios]
       summary: Eliminar un usuario
-      description: Solo el coordinador. No puede eliminar su propia cuenta.
+      description: >
+        Solo el coordinador. No puede eliminar su propia cuenta ni a un usuario que ya tenga sesiones
+        registradas. Si es tutor, sus bloques de disponibilidad se borran junto con él.
       operationId: eliminarUsuario
       responses:
         '204':
@@ -205,6 +207,8 @@ paths:
           $ref: '#/components/responses/SinPermiso'
         '404':
           $ref: '#/components/responses/NoEncontrado'
+        '409':
+          $ref: '#/components/responses/Conflicto'
 
   /api/sesiones:
     post:
