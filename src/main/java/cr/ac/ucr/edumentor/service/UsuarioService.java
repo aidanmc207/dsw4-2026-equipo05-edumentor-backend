@@ -4,6 +4,8 @@ import cr.ac.ucr.edumentor.dto.UsuarioResponseDTO;
 import cr.ac.ucr.edumentor.dto.UsuarioUpdateDTO;
 import cr.ac.ucr.edumentor.entity.Rol;
 import cr.ac.ucr.edumentor.entity.Usuario;
+import cr.ac.ucr.edumentor.repository.DisponibilidadRepository;
+import cr.ac.ucr.edumentor.repository.SesionRepository;
 import cr.ac.ucr.edumentor.repository.UsuarioRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -16,9 +18,14 @@ import java.util.List;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final DisponibilidadRepository disponibilidadRepository;
+    private final SesionRepository sesionRepository;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, DisponibilidadRepository disponibilidadRepository,
+                          SesionRepository sesionRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.disponibilidadRepository = disponibilidadRepository;
+        this.sesionRepository = sesionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -61,6 +68,11 @@ public class UsuarioService {
         if (usuario.getEmail().equals(emailCoordinador)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puede eliminar su propia cuenta");
         }
+        if (sesionRepository.existsByTutorIdOrEstudianteId(id, id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede eliminar a " + usuario.getEmail() + " porque tiene sesiones registradas");
+        }
+        disponibilidadRepository.deleteAll(disponibilidadRepository.findByTutorId(id));
         usuarioRepository.delete(usuario);
     }
 

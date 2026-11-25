@@ -21,6 +21,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -90,5 +91,18 @@ class AuthServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
         verify(usuarioRepository, never()).save(any());
+    }
+
+    @Test
+    void registroGuardaElCorreoEnMinuscula() {
+        RegistroRequestDTO dto = new RegistroRequestDTO("C21111", " Pedro@UCR.ac.cr", "12345678",
+                "Pedro", "Mora", Rol.ESTUDIANTE);
+        when(passwordEncoder.encode("12345678")).thenReturn("hash");
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.registrar(dto);
+
+        verify(usuarioRepository).existsByEmail("pedro@ucr.ac.cr");
+        verify(usuarioRepository).save(argThat(usuario -> usuario.getEmail().equals("pedro@ucr.ac.cr")));
     }
 }

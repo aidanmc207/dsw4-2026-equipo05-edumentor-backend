@@ -14,6 +14,8 @@ public interface SesionRepository extends JpaRepository<SesionTutoria, Long> {
 
     boolean existsByMateriaId(Long materiaId);
 
+    boolean existsByTutorIdOrEstudianteId(Long tutorId, Long estudianteId);
+
     @Query("select s from SesionTutoria s "
             + "join fetch s.estudiante join fetch s.tutor join fetch s.materia "
             + "where s.id = :id")
