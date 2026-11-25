@@ -45,7 +45,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Solo puede registrarse como estudiante o tutor");
         }
 
-        String email = dto.email().trim();
+        String email = dto.email().trim().toLowerCase();
         String carne = dto.carne().trim().toUpperCase();
         if (usuarioRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya hay una cuenta con el correo " + email);
