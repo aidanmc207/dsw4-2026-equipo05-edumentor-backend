@@ -56,7 +56,6 @@ erDiagram
         BIGINT sesion_id FK "NOT NULL"
         VARCHAR(150) titulo "NOT NULL"
         VARCHAR(500) url_recurso "NOT NULL"
-        VARCHAR(30) tipo_archivo "NULL"
     }
 
     EVALUACION_TUTORIA {
